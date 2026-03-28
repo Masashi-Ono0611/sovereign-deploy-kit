@@ -119,7 +119,81 @@ npx ton-sovereign-deploy ./build/ --domain myprotocol.ton
 
 ## 開発状況
 
-**ステータス:** 実装前 (2026-03-28 現在)
+**ステータス:** v0.3 実装中 (2026-03-28 現在)
+- v0.1 ✅ — TON Storage アップロード
+- v0.2 ✅ — .ton DNS 登録
+- v0.3 🚧 — 仕上げ (GitHub Actions, Windows, 疎通確認, watch モード)
+
 **最初の公開ターゲット:** Gateway 2026 (2026年5月)
 
 詳細な実装計画: [PLAN.md](./PLAN.md)
+
+---
+
+## CI/CD 連携 (v0.3)
+
+### GitHub Actions で自動デプロイ
+
+`git push` するだけで TON Storage にデプロイできます。
+
+**セットアップ:**
+
+```bash
+# 1. テンプレートをコピー
+mkdir -p .github/workflows
+cp node_modules/ton-sovereign-deploy/templates/github-workflow.yml \
+   .github/workflows/deploy.yml
+
+# 2. Git に追加
+git add .github/workflows/deploy.yml
+git commit -m "Add TON Storage deployment"
+
+# 3. Push すると自動デプロイ
+git push origin main
+```
+
+**ワークフローの機能:**
+
+- `main` ブランチへの push で自動デプロイ
+- `--ci-mode` でスピナー無効化（ログが見やすい）
+- `--json-output` で bag ID を後続ステップで参照可能
+- プルリクエストにプレビュー bag ID を自動コメント
+
+**出力例:**
+
+```
+🚀 Deployed to TON Storage
+Bag ID: a3f9c82e1b4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1
+ton://a3f9c82e...
+https://ton.run/a3f9c82e...
+```
+
+---
+
+## CLI オプション
+
+### 基本
+
+```bash
+ton-sovereign-deploy [build-dir] [options]
+```
+
+| オプション | 説明 |
+|-----------|------|
+| `[build-dir]` | ビルドディレクトリ (省略時は自動検出) |
+| `--testnet` | TON テストネットを使用 |
+| `--desc <text>` | Bag の説明 |
+| `--domain <domain>` | .ton ドメインに登録 (v0.2) |
+| `--ci-mode` | CI 環境向けスピナー無効化 (v0.3) |
+| `--json-output` | JSON 出力 (v0.3) |
+
+### CI/CD 向けオプション
+
+```bash
+# JSON 出力 (スクリプトで解析しやすい)
+ton-sovereign-deploy ./build/ --json-output
+# → {"bagId":"...","tonUrl":"ton://...","fallbackUrl":"https://..."}
+
+# CI モード (GitHub Actions 等でログが見やすい)
+ton-sovereign-deploy ./build/ --ci-mode --json-output
+```

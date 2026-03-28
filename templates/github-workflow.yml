@@ -1,0 +1,75 @@
+# GitHub Actions workflow for deploying to TON Storage
+# Copy this file to your project: .github/workflows/deploy.yml
+
+name: Deploy to TON Storage
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    # Optional: Skip deploys for specific commit types
+    if: contains(github.event.head_commit.message, '[skip deploy]') == false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build site
+        run: npm run build
+
+      - name: Deploy to TON Storage
+        id: deploy
+        run: |
+          # Deploy and capture JSON output
+          RESULT=$(npx ton-sovereign-deploy ./dist --json-output --ci-mode)
+
+          # Parse bag_id from JSON
+          BAG_ID=$(echo "$RESULT" | jq -r '.bagId')
+
+          # Set as GitHub Actions output
+          echo "bag_id=$BAG_ID" >> $GITHUB_OUTPUT
+
+          # Display result
+          echo "🚀 Deployed to TON Storage"
+          echo "Bag ID: $BAG_ID"
+          echo "ton://$BAG_ID"
+          echo "https://ton.run/$BAG_ID"
+        env:
+          # Optional: Register under your .ton domain
+          # Requires you to own the domain and have a TON wallet
+          DOMAIN: ${{ secrets.TON_DOMAIN }}
+
+      - name: Comment result on PR (optional)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const bagId = '${{ steps.deploy.outputs.bag_id }}';
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `✅ Deployed to TON Storage\n\nBag ID: ${bagId}\nton://${bagId}\nhttps://ton.run/${bagId}`
+            })
+
+      - name: Deploy summary
+        run: |
+          echo "### 🚀 Deployment successful" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Bag ID:** \`${{ steps.deploy.outputs.bag_id }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **TON URL:** \`ton://${{ steps.deploy.outputs.bag_id }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Fallback:** https://ton.run/${{ steps.deploy.outputs.bag_id }}" >> $GITHUB_STEP_SUMMARY

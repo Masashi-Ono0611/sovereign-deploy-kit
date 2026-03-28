@@ -28,3 +28,7 @@ export function printResult(result: DeployResult): void {
   console.log(chalk.bold('Your site cannot be taken down. No server. No CDN. No domain registrar.'))
   console.log()
 }
+
+export function exportAsJson(result: DeployResult): string {
+  return JSON.stringify(result, null, 2)
+}
