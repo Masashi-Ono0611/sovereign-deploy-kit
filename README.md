@@ -69,18 +69,19 @@ npx ton-sovereign-deploy ./build/
 
 ## ロードマップ
 
-### v0.1 — TON Storage アップロード (Day 1-5)
+### v0.1 — TON Storage アップロード (Day 1-5) ✅
 
 ```bash
 npx ton-sovereign-deploy ./build/
 # → bag ID + ton:// URL + ton.run fallback URL
 ```
 
-- ウォレット不要
-- セットアップ不要 (`storage-daemon` は自動DL)
-- Vite / Next.js export / CRA のビルド出力を自動検出
+- ✅ ウォレット不要（ガス代ゼロ）
+- ✅ セットアップ不要 (`storage-daemon` は自動DL）
+- ✅ Vite / Next.js export / CRA のビルド出力を自動検出
+- ✅ macOS/Linux/Windows 対応（v0.3でWindows追加）
 
-### v0.2 — .ton DNS 登録 (Day 6-10)
+### v0.2 — .ton DNS 登録 (Day 6-10) ✅
 
 ```bash
 npx ton-sovereign-deploy ./build/ --domain myprotocol.ton
@@ -88,22 +89,34 @@ npx ton-sovereign-deploy ./build/ --domain myprotocol.ton
 # → myprotocol.ton でアクセス可能に
 ```
 
-### v0.3 — 仕上げ (Day 11-14)
+- ✅ TON Connect ディープリンク生成
+- ✅ QR コード表示（ターミナル内）
+- ✅ DNS レコードオンチェーン確認（ポーリング）
+- ✅ TONAPI 経由のドメイン所有権確認
 
-- ton.run 経由での疎通確認
-- GitHub Action サポート
-- `--watch` モード (ファイル変更時に再デプロイ)
+### v0.3 — 仕上げ ✅ 完了
+
+```bash
+npx ton-sovereign-deploy ./build/
+# → bag ID + ton:// URL + ton.run fallback URL
+# → アクセス確認 + GitHub Actions + Windows サポート + watch モード
+```
+
+- ✅ ton.run 経由での疎通確認（verifyBagOnNetwork）
+- ✅ GitHub Action サポート（`--ci-mode`, `--json-output`）
+- ✅ Windows サポート（win32-x64, win32-arm64, win32-ia32）
+- ✅ `--watch` モード（ファイル変更時に自動再デプロイ）
 
 ---
 
 ## 競合との比較
 
-| ツール | 分散? | 1コマンド? | .ton DNS? | fallback URL? |
-|--------|-------|-----------|-----------|--------------|
-| Vercel / Netlify | No (中央集権) | Yes | No | — |
-| IPFS / Fleek | Yes | Yes | No (.eth のみ) | Yes |
-| TON CLI (手動) | Yes | No | 手動設定 | No |
-| **Sovereign Deploy Kit** | **Yes** | **Yes** | **Yes (v0.2)** | **Yes** |
+| ツール | 分散? | 1コマンド? | .ton DNS? | CI/CD? | Windows? |
+|--------|-------|-----------|-----------|---------|---------|
+| Vercel / Netlify | No (中央集権) | Yes | No | Yes | Yes |
+| IPFS / Fleek | Yes | Yes | No (.eth のみ) | Yes | Yes |
+| TON CLI (手動) | Yes | No | 手動設定 | No | No |
+| **Sovereign Deploy Kit** | **Yes** | **Yes** | **Yes (v0.2)** | **Yes (v0.3)** | **Yes (v0.3)** |
 
 直接の競合: ゼロ。
 
@@ -119,10 +132,12 @@ npx ton-sovereign-deploy ./build/ --domain myprotocol.ton
 
 ## 開発状況
 
-**ステータス:** v0.3 実装中 (2026-03-28 現在)
+**ステータス:** v0.3 完成 (2026-03-28)
 - v0.1 ✅ — TON Storage アップロード
 - v0.2 ✅ — .ton DNS 登録
-- v0.3 🚧 — 仕上げ (GitHub Actions, Windows, 疎通確認, watch モード)
+- v0.3 ✅ — 仕上げ（疎通確認、GitHub Actions、Windows、watch モード）
+
+**リリース:** https://github.com/Masashi-Ono0611/sovereign-deploy-kit
 
 **最初の公開ターゲット:** Gateway 2026 (2026年5月)
 
