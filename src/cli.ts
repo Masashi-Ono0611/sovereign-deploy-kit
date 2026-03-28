@@ -8,6 +8,7 @@ import { createBag } from './upload'
 import { printResult, exportAsJson } from './output'
 import { getDomainNftAddress, buildTonConnectDeeplink, displayTonConnectQr, pollDnsRecord } from './dns'
 import { verifyBagOnNetwork } from './verify'
+import { watchBuildDir } from './watch'
 
 const VERSION = '0.3.0'
 
@@ -24,6 +25,8 @@ program
   .option('--ci-mode', 'Disable spinners for CI environments')
   .option('--json-output', 'Output result as JSON (for CI/CD pipelines)')
   .option('--skip-verify', 'Skip bag accessibility verification')
+  .option('--watch', 'Watch build directory for changes and auto-redeploy')
+  .option('--debounce <ms>', 'Debounce delay in ms for watch mode (default: 2000)', '2000')
   .action(async (buildDirArg: string | undefined, opts: {
     testnet?: boolean
     desc?: string
@@ -31,6 +34,8 @@ program
     ciMode?: boolean
     jsonOutput?: boolean
     skipVerify?: boolean
+    watch?: boolean
+    debounce?: string
   }) => {
     let daemon: DaemonHandle | undefined
 
@@ -128,9 +133,14 @@ program
 
         printResult(result)
 
-        // Step 5 (optional): DNS registration
+        // Step 6 (optional): DNS registration
         if (opts.domain) {
           await runDnsRegistration(opts.domain, result.bagId)
+        }
+
+        // Step 7: watch mode
+        if (opts.watch) {
+          await runWatchMode(buildDir, opts, result.bagId)
         }
       } else {
         // CI mode: no spinners
@@ -166,6 +176,11 @@ program
 
         if (opts.domain) {
           await runDnsRegistration(opts.domain, result.bagId)
+        }
+
+        // Watch mode
+        if (opts.watch) {
+          await runWatchMode(buildDir, opts, result.bagId)
         }
       }
 
@@ -216,6 +231,67 @@ async function runDnsRegistration(domain: string, bagId: string): Promise<void> 
   console.log()
   console.log(chalk.green(`  ✅ ${domain} now points to your site!`))
   console.log(chalk.dim(`     https://${domain} (via TON DNS resolvers)`))
+}
+
+async function runWatchMode(
+  buildDir: string,
+  opts: {
+    testnet?: boolean
+    desc?: string
+    debounce?: string
+    skipVerify?: boolean
+  },
+  initialBagId: string
+): Promise<void> {
+  console.log()
+  console.log(chalk.bold('👀 Watch mode enabled'))
+  console.log(chalk.dim(`  Build dir: ${buildDir}`))
+  console.log(chalk.dim(`  Initial bag: ${initialBagId}`))
+  console.log(chalk.dim('  Press Ctrl+C to stop'))
+  console.log()
+
+  // Keep daemon alive for watch mode
+  const daemon = await startDaemon(opts.testnet)
+
+  const stopWatching = watchBuildDir({
+    buildDir,
+    debounceMs: parseInt(opts.debounce || '2000'),
+    onChange: async () => {
+      const spinner = ora('Re-deploying...').start()
+      try {
+        const result = createBag({
+          buildDir,
+          description: opts.desc,
+          daemon,
+        })
+        spinner.succeed(`Deployed: ${result.bagId}`)
+        printResult(result)
+      } catch (err) {
+        spinner.fail(`Deploy failed: ${err}`)
+      }
+    },
+  })
+
+  // Override cleanup handlers
+  const originalCleanup = () => {
+    stopWatching()
+    daemon.kill()
+  }
+
+  process.removeListener('SIGINT', cleanup)
+  process.removeListener('SIGTERM', cleanup)
+
+  process.on('SIGINT', () => {
+    originalCleanup()
+    process.exit(130)
+  })
+  process.on('SIGTERM', () => {
+    originalCleanup()
+    process.exit(143)
+  })
+
+  // Keep process alive (forever)
+  await new Promise(() => {})
 }
 
 program.parse()

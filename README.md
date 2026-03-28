@@ -186,6 +186,9 @@ ton-sovereign-deploy [build-dir] [options]
 | `--domain <domain>` | .ton ドメインに登録 (v0.2) |
 | `--ci-mode` | CI 環境向けスピナー無効化 (v0.3) |
 | `--json-output` | JSON 出力 (v0.3) |
+| `--watch` | ファイル変更を監視して自動再デプロイ (v0.3) |
+| `--debounce <ms>` | watch モードのデバウンス遅延（デフォルト: 2000ms） |
+| `--skip-verify` | bag アクセス確認をスキップ (v0.3) |
 
 ### CI/CD 向けオプション
 
@@ -197,6 +200,34 @@ ton-sovereign-deploy ./build/ --json-output
 # CI モード (GitHub Actions 等でログが見やすい)
 ton-sovereign-deploy ./build/ --ci-mode --json-output
 ```
+
+### 開発モード (Watch)
+
+```bash
+# ファイル変更を監視して自動再デプロイ
+ton-sovereign-deploy ./build/ --watch
+
+# デバウンス3秒（大規模プロジェクト向け）
+ton-sovereign-deploy ./build/ --watch --debounce 3000
+```
+
+**watch モードの動作:**
+- ファイル変更を検知すると自動的に再デプロイ
+- 連続する変更を1回のデプロイに集約（デバウンス）
+- Ctrl+C で停止
+
+**使用例:**
+```bash
+# ターミナル1で watch モード起動
+ton-sovereign-deploy ./dist/ --watch
+
+# 別ターミナルでビルド
+npm run build
+
+# 自動的に dist/ の変更を検知して再デプロイ
+```
+
+---
 ---
 
 ## 動作環境
