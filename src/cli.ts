@@ -7,6 +7,7 @@ import { ensureBinaries, startDaemon, DaemonHandle } from './daemon'
 import { createBag } from './upload'
 import { printResult, exportAsJson } from './output'
 import { getDomainNftAddress, buildTonConnectDeeplink, displayTonConnectQr, pollDnsRecord } from './dns'
+import { verifyBagOnNetwork } from './verify'
 
 const VERSION = '0.3.0'
 
@@ -22,12 +23,14 @@ program
   .option('--domain <domain>', 'Register bag under this .ton domain (e.g. myprotocol.ton)')
   .option('--ci-mode', 'Disable spinners for CI environments')
   .option('--json-output', 'Output result as JSON (for CI/CD pipelines)')
+  .option('--skip-verify', 'Skip bag accessibility verification')
   .action(async (buildDirArg: string | undefined, opts: {
     testnet?: boolean
     desc?: string
     domain?: string
     ciMode?: boolean
     jsonOutput?: boolean
+    skipVerify?: boolean
   }) => {
     let daemon: DaemonHandle | undefined
 
@@ -101,6 +104,22 @@ program
         daemon.kill()
         daemon = undefined
 
+        // Step 5: verify bag is accessible (unless skipped)
+        if (!opts.skipVerify) {
+          const verifySpinner = createSpinner('Verifying bag is accessible...').start()
+          const verification = await verifyBagOnNetwork({
+            bagId: result.bagId,
+            timeoutMs: 60_000,
+            intervalMs: 5_000,
+          })
+
+          if (verification.accessible) {
+            verifySpinner.succeed(`Bag accessible in ${verification.latencyMs}ms (${verification.attempts} attempts)`)
+          } else {
+            verifySpinner.warn(`Bag not yet accessible after ${verification.attempts} attempts (may take a few minutes)`)
+          }
+        }
+
         // JSON output mode
         if (opts.jsonOutput) {
           console.log(exportAsJson(result))
@@ -122,6 +141,21 @@ program
         })
         daemon.kill()
         daemon = undefined
+
+        // Verify bag accessibility (unless skipped)
+        if (!opts.skipVerify) {
+          const verification = await verifyBagOnNetwork({
+            bagId: result.bagId,
+            timeoutMs: 60_000,
+            intervalMs: 5_000,
+          })
+
+          if (verification.accessible) {
+            console.log(`Bag accessible in ${verification.latencyMs}ms`)
+          } else {
+            console.log(`Bag not yet accessible after ${verification.attempts} attempts`)
+          }
+        }
 
         if (opts.jsonOutput) {
           console.log(exportAsJson(result))
