@@ -197,3 +197,35 @@ ton-sovereign-deploy ./build/ --json-output
 # CI モード (GitHub Actions 等でログが見やすい)
 ton-sovereign-deploy ./build/ --ci-mode --json-output
 ```
+---
+
+## 動作環境
+
+### 対応 OS
+
+- **macOS** — 10.15+ (Catalina 以上)
+- **Linux** — x86_64, ARM64
+- **Windows** — 10/11 (x64, ARM64) v0.3+
+
+### システム要求
+
+- **Node.js** 18+
+- **PowerShell** 3.0+ (Windows のみ、標準搭載)
+- **ネットワーク** — TON ノードとの通信に必要
+
+### Windows 固有の注意事項
+
+**初回実行時:**
+- PowerShell が `storage-daemon-win-x86-64.exe` のダウンロードを実行
+- Windows Defender または他の Antivirus ソフトが警告を表示する可能性があります
+  - その場合: 「許可」または「除外」を選択してください
+  - ファイルは公式 TON GitHub リリースから取得されます
+
+**WSL (Windows Subsystem for Linux):**
+- WSL 環境では Linux バイナリが使用されます
+- WSL2 推奨（より良いネットワークパフォーマンス）
+
+**パスの長さ:**
+- Windows はデフォルトで 260 文字のパス制限があります
+- `~\.ton-sovereign\` は短いため、通常問題にはなりません
+- プロジェクトのパスが長い場合は、長いパスを有効化してください

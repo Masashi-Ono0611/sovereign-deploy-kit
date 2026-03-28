@@ -17,6 +17,9 @@ const PLATFORM_MAP: Record<string, string> = {
   'darwin-x64':    'mac-x86-64',
   'linux-arm64':   'linux-arm64',
   'linux-x64':     'linux-x86_64',
+  'win32-x64':     'win-x86-64',
+  'win32-arm64':   'win-arm64',
+  'win32-ia32':    'win-x86-32',
 }
 
 const CONFIG_URLS = {
@@ -38,7 +41,9 @@ export function getPlatformKey(): string {
 
 function getBinaryName(base: 'storage-daemon' | 'storage-daemon-cli'): string {
   const platformSuffix = PLATFORM_MAP[getPlatformKey()]
-  return `${base}-${platformSuffix}`
+  const isWindows = process.platform === 'win32'
+  const ext = isWindows ? '.exe' : ''
+  return `${base}-${platformSuffix}${ext}`
 }
 
 // -----------------------------------------------------------------------
@@ -97,11 +102,15 @@ export function ensureBinaries(useTestnet = false): void {
 
     process.stdout.write(`  Downloading storage-daemon (${TON_RELEASE_TAG})...\n`)
     downloadFile(`${base}/${daemonAsset}`, paths.daemon)
-    spawnSync('chmod', ['+x', paths.daemon])
+    if (process.platform !== 'win32') {
+      spawnSync('chmod', ['+x', paths.daemon])
+    }
 
     process.stdout.write(`  Downloading storage-daemon-cli...\n`)
     downloadFile(`${base}/${cliAsset}`, paths.cli)
-    spawnSync('chmod', ['+x', paths.cli])
+    if (process.platform !== 'win32') {
+      spawnSync('chmod', ['+x', paths.cli])
+    }
 
     removeQuarantine(paths.daemon)
     removeQuarantine(paths.cli)
@@ -121,8 +130,17 @@ export function ensureBinaries(useTestnet = false): void {
 }
 
 function removeQuarantine(filePath: string): void {
-  if (process.platform !== 'darwin') return
-  spawnSync('xattr', ['-c', filePath])
+  if (process.platform === 'darwin') {
+    spawnSync('xattr', ['-c', filePath])
+  } else if (process.platform === 'win32') {
+    // Windows: Unblock downloaded files using PowerShell
+    spawnSync('powershell.exe', [
+      '-NoProfile',
+      '-NonInteractive',
+      '-Command',
+      `Unblock-File -LiteralPath "${filePath}"`
+    ])
+  }
 }
 
 // -----------------------------------------------------------------------
