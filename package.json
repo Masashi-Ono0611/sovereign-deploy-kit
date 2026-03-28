@@ -1,6 +1,6 @@
 {
   "name": "ton-sovereign-deploy",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Deploy static sites to TON Storage in one command",
   "main": "./dist/cli.js",
   "bin": {
@@ -9,7 +9,10 @@
   "engines": {
     "node": ">=18"
   },
-  "os": ["darwin", "linux"],
+  "os": [
+    "darwin",
+    "linux"
+  ],
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
@@ -19,15 +22,24 @@
   "files": [
     "dist"
   ],
-  "keywords": ["ton", "blockchain", "deploy", "storage", "censorship-resistant"],
+  "keywords": [
+    "ton",
+    "blockchain",
+    "deploy",
+    "storage",
+    "censorship-resistant"
+  ],
   "license": "MIT",
   "dependencies": {
+    "@ton/ton": "^15.4.0",
     "chalk": "^4.1.2",
     "commander": "^12.1.0",
-    "ora": "^5.4.1"
+    "ora": "^5.4.1",
+    "qrcode-terminal": "^0.12.0"
   },
   "devDependencies": {
     "@types/node": "^25.5.0",
+    "@types/qrcode-terminal": "^0.12.2",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^2.1.9"
