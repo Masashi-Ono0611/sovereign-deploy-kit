@@ -1,4 +1,4 @@
-import https from 'https'
+import { httpsGet } from './utils/http'
 
 // -----------------------------------------------------------------------
 // Types
@@ -79,38 +79,20 @@ interface CheckResult {
 }
 
 async function checkBagStatus(bagId: string): Promise<CheckResult> {
-  return new Promise((resolve, reject) => {
-    const url = `https://tonapi.io/v2/storage/bag/${encodeURIComponent(bagId)}`
+  const url = `https://tonapi.io/v2/storage/bag/${encodeURIComponent(bagId)}`
 
-    const req = https.get(url, { headers: { 'Accept': 'application/json' } }, (res) => {
-      let body = ''
-
-      res.on('data', (chunk) => { body += chunk })
-      res.on('end', () => {
-        if (res.statusCode === 200) {
-          try {
-            const data: TonApiBagResponse = JSON.parse(body)
-            // TONAPI returns { status: "active", ... } when bag is accessible
-            resolve({ accessible: data.status === 'active', statusCode: 200 })
-          } catch {
-            // Invalid JSON, but status code was 200
-            resolve({ accessible: true, statusCode: 200 })
-          }
-        } else if (res.statusCode === 404) {
-          // Bag not yet propagated
-          resolve({ accessible: false, statusCode: 404 })
-        } else {
-          reject(new Error(`TONAPI returned ${res.statusCode}`))
-        }
-      })
-    })
-
-    req.on('error', reject)
-    req.setTimeout(10_000, () => {
-      req.destroy()
-      reject(new Error('TONAPI request timed out'))
-    })
-  })
+  try {
+    const data = await httpsGet<TonApiBagResponse>(url, { timeout: 10_000 })
+    // TONAPI returns { status: "active", ... } when bag is accessible
+    return { accessible: data.status === 'active', statusCode: 200 }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    if (message.includes('Not found') || message.includes('HTTP 404')) {
+      // Bag not yet propagated
+      return { accessible: false, statusCode: 404 }
+    }
+    throw err
+  }
 }
 
 // -----------------------------------------------------------------------

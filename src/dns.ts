@@ -1,9 +1,9 @@
 import { createHash, randomBytes } from 'crypto'
 import { Address, beginCell, Cell } from '@ton/ton'
 import * as qrcode from 'qrcode-terminal'
-import https from 'https'
 import chalk from 'chalk'
 import ora from 'ora'
+import { httpsGet } from './utils/http'
 
 // -----------------------------------------------------------------------
 // Types
@@ -75,38 +75,23 @@ interface TonApiDnsInfo {
   item?: { address: string }
 }
 
-export function getDomainNftAddress(domain: string): Promise<Address> {
+export async function getDomainNftAddress(domain: string): Promise<Address> {
   const cleanDomain = domain.endsWith('.ton') ? domain : `${domain}.ton`
+  const url = `https://tonapi.io/v2/dns/${encodeURIComponent(cleanDomain)}/info`
 
-  return new Promise((resolve, reject) => {
-    const url = `https://tonapi.io/v2/dns/${encodeURIComponent(cleanDomain)}/info`
-    const req = https.get(url, { headers: { 'Accept': 'application/json' } }, (res) => {
-      let body = ''
-      res.on('data', (chunk) => { body += chunk })
-      res.on('end', () => {
-        if (res.statusCode === 404) {
-          reject(new Error(`Domain "${cleanDomain}" not found. Make sure you own this .ton domain.`))
-          return
-        }
-        if (res.statusCode !== 200) {
-          reject(new Error(`TONAPI error ${res.statusCode}: ${body.slice(0, 200)}`))
-          return
-        }
-        try {
-          const data: TonApiDnsInfo = JSON.parse(body)
-          if (!data.item?.address) {
-            reject(new Error(`Domain "${cleanDomain}" has no NFT item address in TONAPI response`))
-            return
-          }
-          resolve(Address.parse(data.item.address))
-        } catch (e) {
-          reject(new Error(`Failed to parse TONAPI response: ${e}`))
-        }
-      })
-    })
-    req.on('error', reject)
-    req.setTimeout(10_000, () => { req.destroy(); reject(new Error('TONAPI request timed out')) })
-  })
+  try {
+    const data = await httpsGet<TonApiDnsInfo>(url, { timeout: 10_000 })
+    if (!data.item?.address) {
+      throw new Error(`Domain "${cleanDomain}" has no NFT item address in TONAPI response`)
+    }
+    return Address.parse(data.item.address)
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    if (message.includes('Not found')) {
+      throw new Error(`Domain "${cleanDomain}" not found. Make sure you own this .ton domain.`)
+    }
+    throw new Error(`Failed to resolve domain "${cleanDomain}": ${message}`)
+  }
 }
 
 // -----------------------------------------------------------------------
@@ -188,24 +173,14 @@ interface TonApiDnsRecord {
 
 async function getDnsStorageRecord(domain: string): Promise<string | null> {
   const cleanDomain = domain.endsWith('.ton') ? domain : `${domain}.ton`
+  const url = `https://tonapi.io/v2/dns/${encodeURIComponent(cleanDomain)}/resolve`
 
-  return new Promise((resolve) => {
-    const url = `https://tonapi.io/v2/dns/${encodeURIComponent(cleanDomain)}/resolve`
-    const req = https.get(url, { headers: { 'Accept': 'application/json' } }, (res) => {
-      let body = ''
-      res.on('data', (chunk) => { body += chunk })
-      res.on('end', () => {
-        try {
-          const data: TonApiDnsRecord = JSON.parse(body)
-          resolve(data.storage?.bag_id?.toLowerCase() ?? null)
-        } catch {
-          resolve(null)
-        }
-      })
-    })
-    req.on('error', () => resolve(null))
-    req.setTimeout(5_000, () => { req.destroy(); resolve(null) })
-  })
+  try {
+    const data = await httpsGet<TonApiDnsRecord>(url, { timeout: 5_000 })
+    return data.storage?.bag_id?.toLowerCase() ?? null
+  } catch {
+    return null
+  }
 }
 
 export async function pollDnsRecord(
