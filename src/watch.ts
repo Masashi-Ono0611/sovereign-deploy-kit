@@ -1,4 +1,5 @@
 import chokidar from 'chokidar'
+import chalk from 'chalk'
 
 // -----------------------------------------------------------------------
 // Types
@@ -26,7 +27,6 @@ export function watchBuildDir(opts: WatchOptions): () => void {
   let debounceTimer: NodeJS.Timeout | null = null
 
   watcher.on('change', (path) => {
-    const chalk = require('chalk')
     console.log(chalk.dim(`File changed: ${path}`))
 
     // Clear existing timer (debounce)
@@ -39,7 +39,6 @@ export function watchBuildDir(opts: WatchOptions): () => void {
       try {
         await onChange()
       } catch (err) {
-        const chalk = require('chalk')
         console.error(chalk.red('Watch error:'), err)
       } finally {
         debounceTimer = null

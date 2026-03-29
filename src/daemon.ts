@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { ChildProcess, spawn, spawnSync } from 'child_process'
 import path from 'path'
 import os from 'os'
@@ -213,7 +213,6 @@ export async function startDaemon(useTestnet = false): Promise<DaemonHandle> {
     kill: () => {
       try { child.kill('SIGTERM') } catch {}
       try {
-        const { rmSync } = require('fs')
         rmSync(sessionDir, { recursive: true, force: true })
       } catch {}
     },

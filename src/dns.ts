@@ -1,7 +1,9 @@
-import { createHash } from 'crypto'
+import { createHash, randomBytes } from 'crypto'
 import { Address, beginCell, Cell } from '@ton/ton'
 import * as qrcode from 'qrcode-terminal'
 import https from 'https'
+import chalk from 'chalk'
+import ora from 'ora'
 
 // -----------------------------------------------------------------------
 // Types
@@ -127,7 +129,6 @@ const MANIFEST_URL = 'https://raw.githubusercontent.com/ton-projects/sovereign-d
 
 // Random 32-byte client ID (hex) — used per-session to identify TON Connect bridge session
 function randomHex(bytes: number): string {
-  const { randomBytes } = require('crypto')
   return randomBytes(bytes).toString('hex')
 }
 
@@ -159,7 +160,6 @@ export function buildTonConnectDeeplink(nftAddress: Address, bagId: string): str
 // -----------------------------------------------------------------------
 
 export function displayTonConnectQr(deeplink: string, domain: string): void {
-  const chalk = require('chalk')
   console.log()
   console.log(chalk.bold('📱 TON Connect — Sign DNS Registration'))
   console.log(chalk.dim(`  Domain: ${domain}`))
@@ -214,8 +214,6 @@ export async function pollDnsRecord(
   timeoutMs = 300_000,
   intervalMs = 10_000,
 ): Promise<void> {
-  const chalk = require('chalk')
-  const ora = require('ora')
   const spinner = ora('Waiting for DNS record to propagate...').start()
   const deadline = Date.now() + timeoutMs
 

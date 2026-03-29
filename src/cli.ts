@@ -3,6 +3,7 @@ import { Command } from 'commander'
 import ora from 'ora'
 import chalk from 'chalk'
 import type { CliOptions } from './types/cli'
+import { createSpinnerFactory } from './utils/spinner'
 import { detectBuildDir } from './detect'
 import { ensureBinaries, startDaemon, DaemonHandle } from './daemon'
 import { createBag } from './upload'
@@ -45,12 +46,8 @@ program
     // Auto-detect CI environment
     const isCI = opts.ciMode || process.env.CI === 'true'
 
-    // Dummy spinner for CI mode
-    const createSpinner = isCI
-      ? (() => ({
-          start: (msg: string) => ({ succeed: () => {}, fail: () => {}, warn: () => {} })
-        }))()
-      : ora
+    // Spinner factory (disabled in CI mode)
+    const createSpinner = createSpinnerFactory(isCI)
 
     try {
       const cwd = process.cwd()
@@ -190,9 +187,7 @@ program
 
 async function runDnsRegistration(domain: string, bagId: string): Promise<void> {
   const isCI = process.env.CI === 'true'
-  const createSpinner = isCI
-    ? (() => ({ start: () => ({ succeed: () => {}, fail: () => {} }) }))()
-    : ora
+  const createSpinner = createSpinnerFactory(isCI)
 
   console.log()
   console.log(chalk.bold('🔗 DNS Registration'))
