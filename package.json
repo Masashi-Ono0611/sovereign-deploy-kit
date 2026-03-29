@@ -36,8 +36,7 @@
     "chalk": "^4.1.2",
     "chokidar": "^5.0.0",
     "commander": "^12.1.0",
-    "lodash-es": "^4.17.23",
-    "ora": "^5.4.1",
+    "ora": "^5.5.4",
     "qrcode-terminal": "^0.12.0"
   },
   "devDependencies": {

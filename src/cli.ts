@@ -2,6 +2,7 @@
 import { Command } from 'commander'
 import ora from 'ora'
 import chalk from 'chalk'
+import type { CliOptions } from './types/cli'
 import { detectBuildDir } from './detect'
 import { ensureBinaries, startDaemon, DaemonHandle } from './daemon'
 import { createBag } from './upload'
@@ -27,16 +28,7 @@ program
   .option('--skip-verify', 'Skip bag accessibility verification')
   .option('--watch', 'Watch build directory for changes and auto-redeploy')
   .option('--debounce <ms>', 'Debounce delay in ms for watch mode (default: 2000)', '2000')
-  .action(async (buildDirArg: string | undefined, opts: {
-    testnet?: boolean
-    desc?: string
-    domain?: string
-    ciMode?: boolean
-    jsonOutput?: boolean
-    skipVerify?: boolean
-    watch?: boolean
-    debounce?: string
-  }) => {
+  .action(async (buildDirArg: string | undefined, opts: CliOptions) => {
     let daemon: DaemonHandle | undefined
 
     const cleanup = () => {
@@ -233,14 +225,16 @@ async function runDnsRegistration(domain: string, bagId: string): Promise<void> 
   console.log(chalk.dim(`     https://${domain} (via TON DNS resolvers)`))
 }
 
+interface WatchModeOptions {
+  testnet?: boolean
+  desc?: string
+  debounce?: string
+  skipVerify?: boolean
+}
+
 async function runWatchMode(
   buildDir: string,
-  opts: {
-    testnet?: boolean
-    desc?: string
-    debounce?: string
-    skipVerify?: boolean
-  },
+  opts: WatchModeOptions,
   initialBagId: string
 ): Promise<void> {
   console.log()
